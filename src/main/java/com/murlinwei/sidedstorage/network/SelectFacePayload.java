@@ -53,9 +53,10 @@ public record SelectFacePayload(BlockPos pos, int face) implements CustomPacketP
                 return;
             }
 
-            // The client already sent a close packet; closing again is harmless and covers the case where it did not.
+            // No explicit close here: openMenu silently swaps the server menu
+            // (the provider opts out of client-side closing), so the client
+            // replaces the screen directly with no flash and no mouse reset.
             storage.setActiveSide(payload.face());
-            player.closeContainer();
             player.openMenu(storage, buffer -> {
                 buffer.writeVarInt(storage.getActiveSide());
                 buffer.writeBlockPos(pos);

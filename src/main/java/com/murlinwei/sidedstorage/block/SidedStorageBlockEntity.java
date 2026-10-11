@@ -109,6 +109,17 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
         // extra data, and the client menu reads exactly that layout.
     }
 
+    /**
+     * Tab switches reopen the menu while one is already open. Returning false
+     * makes that reopen silent server-side ({@code doCloseContainer} instead of
+     * {@code closeContainer}), so the client never sees a close packet, the
+     * screen is replaced directly, and the mouse is not recentered.
+     */
+    @Override
+    public boolean shouldTriggerClientSideContainerClosingOnOpen() {
+        return false;
+    }
+
     // ---- persistence ----
 
     @Override
