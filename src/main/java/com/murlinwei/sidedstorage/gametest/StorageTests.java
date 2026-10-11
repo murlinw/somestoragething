@@ -33,6 +33,10 @@ import java.util.concurrent.CompletableFuture;
 public class StorageTests {
     private static final BlockPos POS = new BlockPos(2, 2, 2);
 
+    /**
+     * Checks every tier's directional capabilities and serialization inside Minecraft. Distinct item
+     * counts on each face reveal overlapping partitions, unsided access, or items lost during save/load.
+     */
     @GameTest(template = "empty")
     public static void partitionsAndPersistence(GameTestHelper helper) {
         for (Block block : new Block[]{ModBlocks.BASIC.get(), ModBlocks.DENSE.get(), ModBlocks.CAPACITY.get()}) {
@@ -59,6 +63,11 @@ public class StorageTests {
         helper.succeed();
     }
 
+    /**
+     * Checks that vanilla pickaxes can harvest all tiers, bare hands cannot harvest their block drops, and
+     * loot tables provide the storage item. Also verifies comparator output for empty and full
+     * inventories.
+     */
     @GameTest(template = "empty")
     public static void miningAndComparator(GameTestHelper helper) {
         var player = helper.makeMockPlayer(GameType.SURVIVAL);
@@ -79,6 +88,11 @@ public class StorageTests {
         helper.succeed();
     }
 
+    /**
+     * Exercises both placed-block upgrades at survival material costs. Rejects seven-material attempts and
+     * verifies that successful upgrades consume eight materials while preserving face boundaries and slot
+     * positions.
+     */
     @GameTest(template = "empty")
     public static void upgradesPreserveFacesAndCost(GameTestHelper helper) {
         helper.setBlock(POS, ModBlocks.BASIC.get());
@@ -108,6 +122,10 @@ public class StorageTests {
         helper.succeed();
     }
 
+    /**
+     * Runs a real hopper below storage and checks that it extracts the bottom partition's item while
+     * leaving the top partition untouched. This protects the mod's core automation rule.
+     */
     @GameTest(template = "empty", timeoutTicks = 100)
     public static void hopperOnlyExtractsBottomFace(GameTestHelper helper) {
         helper.setBlock(POS, ModBlocks.BASIC.get());
@@ -123,6 +141,11 @@ public class StorageTests {
         });
     }
 
+    /**
+     * Creates two independent player menus and checks that later face selections do not change either open
+     * view. Replacing the storage block must invalidate the old menu even when the replacement is the same
+     * tier.
+     */
     @GameTest(template = "empty")
     public static void menusStayIndependentAndRejectReplacement(GameTestHelper helper) {
         helper.setBlock(POS, ModBlocks.BASIC.get());
@@ -143,6 +166,11 @@ public class StorageTests {
         helper.succeed();
     }
 
+    /**
+     * Exercises the real tab handler with a NeoForge mock connection and game-thread payload context.
+     * Checks all clicked faces, rejects unauthorized or malformed requests, and confirms a valid switch
+     * returns cursor items exactly once while retaining Capacity-tier slot counts.
+     */
     @GameTest(template = "empty")
     public static void tabPacketsValidateAndReturnCursorItems(GameTestHelper helper) throws Exception {
         helper.setBlock(POS, ModBlocks.CAPACITY.get());

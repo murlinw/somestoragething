@@ -23,6 +23,11 @@ public class SidedStorage {
 
     public static final String MODID = "sidedstorage";
 
+    /**
+     * Initializes Sided Storage by attaching block, item, inventory, menu, and creative-tab registries to
+     * the mod event bus. Also connects automation capability registration and the face-switch network
+     * protocol.
+     */
     public SidedStorage(IEventBus modEventBus) {
         ModBlocks.BLOCKS.register(modEventBus);
         ModItems.ITEMS.register(modEventBus);
@@ -34,8 +39,9 @@ public class SidedStorage {
     }
 
     /**
-     * Exposes the per-face item handlers to automation. A hopper pointed at a face only ever sees the slots
-     * belonging to that face, so it can only take out what was put in through that same face.
+     * Exposes each storage block entity through NeoForge item capabilities. Directional queries receive
+     * only that face's partition; unsided queries receive no inventory, preserving the mod's
+     * face-isolation rule.
      */
     private void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(
@@ -44,6 +50,10 @@ public class SidedStorage {
                 (be, side) -> be.getHandlerForSide(side));
     }
 
+    /**
+     * Registers the client-to-server face-switch payload with protocol version 2. This version accompanies
+     * menu-opening data that includes the tier's slots per face.
+     */
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
         SelectFacePayload.register(event.registrar("2"));
     }

@@ -29,10 +29,18 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
     private static final int TAB_Y = 27;
     private static final int FACE_LABEL_Y = 16;
 
+    /**
+     * Connects the storage screen to its menu, player inventory, and translated title. The menu supplies
+     * the selected face and tier-sized layout.
+     */
     public SidedStorageScreen(SidedStorageMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
     }
 
+    /**
+     * Sizes the panel for the current tier and creates six keyboard-accessible face buttons. Each button
+     * has a full direction tooltip and narration; initial focus follows the active face.
+     */
     @Override
     protected void init() {
         this.imageWidth = 176;
@@ -53,6 +61,10 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
         }
     }
 
+    /**
+     * Draws the storage panel and frames around all menu slots. Minecraft renders the face buttons and
+     * synchronized item stacks separately.
+     */
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = this.leftPos;
@@ -72,6 +84,10 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
         }
     }
 
+    /**
+     * Draws the inset frame for one storage or player slot. Shared framing keeps every tier's dynamically
+     * sized grid visually consistent.
+     */
     private void slotFrame(GuiGraphics graphics, int x, int y) {
         graphics.fill(x, y, x + 16, y + 16, 0xFF8B8B8B);
         graphics.fill(x, y, x + 16, y + 1, 0xFF373737);
@@ -80,6 +96,10 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
         graphics.fill(x + 15, y + 1, x + 16, y + 16, 0xFFFFFFFF);
     }
 
+    /**
+     * Draws the tier title, full selected-face label, and player inventory heading. Their positions follow
+     * the storage menu's layout.
+     */
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(this.font, this.title, 8, 6, 0x404040, false);
@@ -94,10 +114,9 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
     }
 
     /**
-     * Asks the server to open the same block on a different face. The current
-     * screen deliberately stays open until the replacement menu arrives, so
-     * there is no flash of inventory and the cursor stays on the tab strip.
-     * If the server declines, the old face simply stays showing.
+     * Requests a different face from the server while leaving the current screen open until its
+     * replacement arrives. The server validates the request and rebuilds the partition-specific menu;
+     * selecting the current face does nothing.
      */
     private void selectFace(int side) {
         if (side == this.menu.getActiveSide() || this.minecraft.player == null) {

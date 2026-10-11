@@ -11,8 +11,16 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD, modid = SidedStorage.MODID)
 public final class ClientSetup {
 
+    /**
+     * Prevents instances of this client-only event subscriber. Minecraft invokes its static registration
+     * method during client setup.
+     */
     private ClientSetup() {}
 
+    /**
+     * Associates the registered storage menu type with SidedStorageScreen on the client. Dedicated servers
+     * do not load this screen registration.
+     */
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.SIDED_STORAGE.get(), SidedStorageScreen::new);

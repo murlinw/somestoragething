@@ -22,5 +22,9 @@ public final class ModBlockEntities {
                     ModBlocks.CAPACITY.get())
                     .build(null));
 
+    /**
+     * Prevents instances of this registry holder. Its shared block entity registration supplies persistent
+     * face inventories for all three storage blocks.
+     */
     private ModBlockEntities() {}
 }

@@ -31,16 +31,29 @@ public record SelectFacePayload(BlockPos pos, int face) implements CustomPacketP
             ByteBufCodecs.VAR_INT, SelectFacePayload::face,
             SelectFacePayload::new);
 
+    /**
+     * Identifies this message as Sided Storage's select_face payload so NeoForge can encode and route
+     * face-switch requests.
+     */
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 
-    /** Registers this payload. Called from the mod constructor. */
+    /**
+     * Registers the face-switch codec and server handler with NeoForge networking. Only client-to-server
+     * requests are accepted for this payload.
+     */
     public static void register(PayloadRegistrar registrar) {
         registrar.playToServer(TYPE, STREAM_CODEC, SelectFacePayload::handle);
     }
 
+    /**
+     * Processes a requested tab switch on the game thread. Requires a valid face, the matching open
+     * storage menu, its original block entity, a loaded chunk, and a nearby player before reopening the
+     * menu. Sends the tier size with the new face so both sides agree on slot indices; ordinary menu
+     * cleanup safely returns cursor items.
+     */
     private static void handle(SelectFacePayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) {

@@ -15,12 +15,16 @@ public final class ModMenus {
             DeferredRegister.create(Registries.MENU, SidedStorage.MODID);
 
     /**
-     * The client-side copy of the menu is rebuilt from the block position the server writes when the menu is opened,
-     * so it can find the same block entity and size its slot list identically.
+     * The factory rebuilds the client menu from the face, block position, and slots per face sent by the server.
+     * Its temporary inventory receives synchronized stacks without relying on a client-side block entity.
      */
     public static final DeferredHolder<MenuType<?>, MenuType<SidedStorageMenu>> SIDED_STORAGE =
             MENUS.register("sided_storage", () -> IMenuTypeExtension.<SidedStorageMenu>create(
                     (id, inventory, buffer) -> new SidedStorageMenu(id, inventory, buffer)));
 
+    /**
+     * Prevents instances of this registry holder. Its static menu registration connects server-side
+     * storage views to the client menu factory.
+     */
     private ModMenus() {}
 }

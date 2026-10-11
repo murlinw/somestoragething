@@ -30,8 +30,8 @@ import org.jetbrains.annotations.Nullable;
  * <p>Face order matches {@link Direction#values()} (down, up, north, south, west, east), so face <em>n</em> owns
  * slots {@code [n * slotsPerSide, (n + 1) * slotsPerSide)}.
  *
- * <p>The selected face is remembered here rather than in the menu so that reopening the screen after a tab switch
- * comes back on the same face.
+ * <p>The face remembered here seeds newly created menus. Each open menu retains its own fixed face so players
+ * viewing the same storage do not change each other's inventory view.
  */
 public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider, IMenuProviderExtension {
 
@@ -40,10 +40,18 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
     private final IItemHandler[] sideHandlers;
     private int activeSide = Direction.UP.ordinal();
 
+    /**
+     * Creates the tier-sized backing inventory and six ranged views, one for each world direction. Each
+     * view covers a separate contiguous slice, which enforces Sided Storage's partition boundaries.
+     */
     public SidedStorageBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.SIDED_STORAGE.get(), pos, state);
         this.tier = state.getBlock() instanceof SidedStorageBlock block ? block.getTier() : StorageTier.BASIC;
         this.itemHandler = new ItemStackHandler(this.tier.getTotalSlots()) {
+            /**
+             * Marks inventory edits for saving and refreshes comparator output on the server. Both GUI edits and
+             * automation transfers use this callback.
+             */
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
@@ -59,32 +67,52 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
         }
     }
 
+    /**
+     * Returns the inventory owner's tier so menu creation and upgrade logic can determine its face
+     * capacity.
+     */
     public StorageTier getTier() {
         return this.tier;
     }
 
-    /** The whole inventory, all faces together. */
+    /**
+     * Provides internal mod code with the full backing inventory for saving, spilling contents, upgrades,
+     * and comparator calculations. Automation must use the restricted directional capability instead.
+     */
     public ItemStackHandler getItemHandler() {
         return this.itemHandler;
     }
 
     /**
-     * Automation must name a face; an unsided query must not bypass the partitions.
+     * Returns only the partition assigned to the requested direction. Returns null for an unsided query so
+     * automation cannot bypass Sided Storage's face separation.
      */
     public @Nullable IItemHandler getHandlerForSide(@Nullable Direction side) {
         return side == null ? null : this.sideHandlers[side.ordinal()];
     }
 
+    /**
+     * Builds the translated title for the current storage tier. Menus display this as the name of the
+     * storage block.
+     */
     public Component getTitle() {
         return Component.translatable("block.sidedstorage." + this.tier.getBlockPath());
     }
 
     // ---- selected face ----
 
+    /**
+     * Returns the face remembered for the next menu opening. Already-open menus keep their own face
+     * selection so players do not switch each other's tabs.
+     */
     public int getActiveSide() {
         return this.activeSide;
     }
 
+    /**
+     * Remembers a valid face for menu creation and saves that selection with the block. Ignores values
+     * outside Minecraft's six directions.
+     */
     public void setActiveSide(int side) {
         if (side >= 0 && side < StorageTier.SIDES) {
             this.activeSide = side;
@@ -94,17 +122,28 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
 
     // ---- MenuProvider ----
 
+    /**
+     * Supplies Minecraft's menu-provider interface with the storage tier's translated title.
+     */
     @Override
     public Component getDisplayName() {
         return getTitle();
     }
 
+    /**
+     * Creates a server menu backed by the remembered face's inventory. The resulting menu owns its
+     * selection independently of later changes to this block's remembered face.
+     */
     @Override
     @Nullable
     public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
         return new SidedStorageMenu(containerId, inventory, this, this.activeSide);
     }
 
+    /**
+     * Adds no extra provider data because the block interaction and tab-switch handler already write the
+     * complete opening payload. Keeping this hook empty avoids duplicating fields the client reads.
+     */
     @Override
     public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
         // Nothing to add here: the block (and the tab-switch handler) already append the position/face to the
@@ -112,10 +151,9 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
     }
 
     /**
-     * Tab switches reopen the menu while one is already open. Returning false
-     * makes that reopen silent server-side ({@code doCloseContainer} instead of
-     * {@code closeContainer}), so the client never sees a close packet, the
-     * screen is replaced directly, and the mouse is not recentered.
+     * Suppresses the separate client-close packet when opening a replacement storage menu. Face switches
+     * can replace the screen without flashing the player inventory or recentering the mouse; normal
+     * server-side menu cleanup still occurs.
      */
     @Override
     public boolean shouldTriggerClientSideContainerClosingOnOpen() {
@@ -124,6 +162,10 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
 
     // ---- persistence ----
 
+    /**
+     * Writes all six inventories and the remembered face into the block entity's save data. This preserves
+     * stored items and the selection across world saves and reloads.
+     */
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
@@ -131,6 +173,10 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
         tag.putInt("ActiveSide", this.activeSide);
     }
 
+    /**
+     * Restores inventory contents and the remembered face from saved block data. Clamps the saved
+     * selection to a valid direction before it can be used by a menu.
+     */
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);

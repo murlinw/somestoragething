@@ -24,5 +24,9 @@ public final class ModCreativeTabs {
                     })
                     .build());
 
+    /**
+     * Prevents instances of this registry holder. Its static creative-tab registration makes all three
+     * storage tiers discoverable in creative mode.
+     */
     private ModCreativeTabs() {}
 }

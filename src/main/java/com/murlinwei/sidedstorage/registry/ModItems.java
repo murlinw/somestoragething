@@ -18,5 +18,9 @@ public final class ModItems {
     public static final DeferredItem<BlockItem> CAPACITY = ITEMS.registerSimpleBlockItem(
             ModBlocks.CAPACITY, new Item.Properties());
 
+    /**
+     * Prevents instances of this registry holder. Its static block-item registrations provide the
+     * placeable, craftable, and dropped item forms of each storage tier.
+     */
     private ModItems() {}
 }

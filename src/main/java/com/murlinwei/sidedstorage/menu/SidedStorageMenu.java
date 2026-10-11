@@ -40,7 +40,10 @@ public class SidedStorageMenu extends AbstractContainerMenu {
     private final BlockPos blockPos;
     private SidedStorageBlockEntity serverStorage;
 
-    /** Server side. */
+    /**
+     * Creates the authoritative server menu for one storage face. Adds that face's slots and the player
+     * inventory, and remembers the exact block entity so replacement invalidates the menu.
+     */
     public SidedStorageMenu(int containerId, Inventory playerInventory, SidedStorageBlockEntity storage, int activeSide) {
         super(ModMenus.SIDED_STORAGE.get(), containerId);
         this.activeSide = Mth.clamp(activeSide, 0, StorageTier.SIDES - 1);
@@ -52,11 +55,18 @@ public class SidedStorageMenu extends AbstractContainerMenu {
         this.addSlots(playerInventory);
     }
 
-    /** Client side; the server wrote the face and position when the menu was opened. */
+    /**
+     * Creates the client menu from the server's opening payload. Reads the face, position, and capacity
+     * instead of depending on the block entity already being loaded on the client.
+     */
     public SidedStorageMenu(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf buffer) {
         this(containerId, playerInventory, readAccess(buffer));
     }
 
+    /**
+     * Builds a client menu using the decoded face description and an empty inventory for slot
+     * synchronization. Its slot count and layout match the server's selected partition.
+     */
     private SidedStorageMenu(int containerId, Inventory playerInventory, Access access) {
         super(ModMenus.SIDED_STORAGE.get(), containerId);
         this.activeSide = access.activeSide();
@@ -66,6 +76,10 @@ public class SidedStorageMenu extends AbstractContainerMenu {
         this.addSlots(playerInventory);
     }
 
+    /**
+     * Adds only the selected face's storage slots, followed by the player inventory and hotbar. This
+     * ordering lets shift-click transfer items without reaching another face.
+     */
     private void addSlots(Inventory playerInventory) {
         for (int i = 0; i < this.slotsPerSide; i++) {
             this.addSlot(new SlotItemHandler(this.faceHandler, i,
@@ -87,6 +101,11 @@ public class SidedStorageMenu extends AbstractContainerMenu {
     /** Everything the client needs to rebuild a menu that matches the server's. */
     private record Access(IItemHandlerModifiable handler, int activeSide, int slotsPerSide, BlockPos pos) {}
 
+    /**
+     * Decodes and validates the server-supplied menu size, then creates a client inventory of exactly that
+     * size. Explicit capacity prevents Dense or Capacity menus from falling back to Basic when client
+     * block data is unavailable.
+     */
     private static Access readAccess(RegistryFriendlyByteBuf buffer) {
         int side = Mth.clamp(buffer.readVarInt(), 0, StorageTier.SIDES - 1);
         BlockPos pos = buffer.readBlockPos();
@@ -95,42 +114,77 @@ public class SidedStorageMenu extends AbstractContainerMenu {
         return new Access(new ItemStackHandler(perSide), side, perSide, pos);
     }
 
+    /**
+     * Obtains the mutable inventory interface needed by storage slots. A correctly sized empty fallback
+     * keeps menu construction safe if an unexpected handler implementation is supplied.
+     */
     private static IItemHandlerModifiable modifiable(IItemHandler handler, int slotsPerSide) {
         return handler instanceof IItemHandlerModifiable modifiable ? modifiable : new ItemStackHandler(slotsPerSide);
     }
 
+    /**
+     * Calculates where the player inventory begins below the tier's storage rows. Both menu slot placement
+     * and the screen use this layout calculation.
+     */
     private static int getPlayerInvY(int slotsPerSide) {
         return GRID_Y + (slotsPerSide / COLUMNS) * 18 + 12;
     }
 
+    /**
+     * Returns this menu's fixed face selection. The screen uses it for the face label and to avoid
+     * requesting the currently displayed tab.
+     */
     public int getActiveSide() {
         return this.activeSide;
     }
 
+    /**
+     * Returns the number of storage slots exposed by this menu. The screen layout and shift-click
+     * boundaries depend on this face capacity.
+     */
     public int getSlotsPerSide() {
         return this.slotsPerSide;
     }
 
+    /**
+     * Returns the storage position associated with this menu. Face-switch packets use it, and the server
+     * validates it against the player's open menu.
+     */
     public BlockPos getBlockPos() {
         return this.blockPos;
     }
 
+    /**
+     * Returns the vertical start of this menu's player inventory. The screen uses it to place the
+     * inventory heading consistently with the slots.
+     */
     public int getPlayerInvY() {
         return getPlayerInvY(this.slotsPerSide);
     }
 
-    /** Total panel height, derived from how many rows the selected face needs. */
+    /**
+     * Calculates the GUI panel height from storage capacity and the player inventory area. Each storage
+     * tier can therefore use the same screen class.
+     */
     public int getImageHeight() {
         return getPlayerInvY() + 82;
     }
 
-    /** Mirrors the vanilla check: the block must still be ours, and the player must still be in reach. */
+    /**
+     * Keeps client menus available for synchronization, while server menus require the original block
+     * entity and a player within interaction reach. Breaking, replacing, or upgrading storage invalidates
+     * old inventory views.
+     */
     @Override
     public boolean stillValid(Player player) {
         return player.level().isClientSide || (player.level().getBlockEntity(this.blockPos) == this.serverStorage
                 && player.canInteractWithBlock(this.blockPos, 4.0));
     }
 
+    /**
+     * Handles shift-click between the selected face and the player inventory. Transfers never include
+     * other faces, and the changed source slot is updated for synchronization and saving.
+     */
     @Override
     public ItemStack quickMoveStack(Player player, int index) {
         Slot slot = this.slots.get(index);

@@ -17,8 +17,16 @@ public final class ModBlocks {
     public static final DeferredBlock<SidedStorageBlock> DENSE = register(StorageTier.DENSE);
     public static final DeferredBlock<SidedStorageBlock> CAPACITY = register(StorageTier.CAPACITY);
 
+    /**
+     * Prevents instances of this registry holder. The mod entrypoint registers its shared block registry
+     * with NeoForge.
+     */
     private ModBlocks() {}
 
+    /**
+     * Registers one Sided Storage tier with its own name and common metal block properties. Correct-tool
+     * harvesting works together with the mod's pickaxe mining tag.
+     */
     private static DeferredBlock<SidedStorageBlock> register(StorageTier tier) {
         return BLOCKS.registerBlock(
                 tier.getBlockPath(),

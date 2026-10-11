@@ -22,32 +22,52 @@ public enum StorageTier implements StringRepresentable {
     private final String name;
     private final int slotsPerSide;
 
+    /**
+     * Defines a storage tier's stable name and capacity per face. Basic, Dense, and Capacity use these
+     * values to build their inventories, registry names, and GUI layouts.
+     */
     StorageTier(String name, int slotsPerSide) {
         this.name = name;
         this.slotsPerSide = slotsPerSide;
     }
 
+    /**
+     * Returns the tier name used by Minecraft's string codec. This lets the mod serialize its block tier
+     * consistently.
+     */
     @Override
     public String getSerializedName() {
         return this.name;
     }
 
-    /** Number of slots backing a single face. */
+    /**
+     * Returns the capacity of one face's partition. Inventory wrappers and menus use this to keep Basic,
+     * Dense, and Capacity slots separate.
+     */
     public int getSlotsPerSide() {
         return this.slotsPerSide;
     }
 
-    /** Total number of slots across every face. */
+    /**
+     * Returns the combined capacity of all six faces. The block entity uses this size for its backing
+     * inventory.
+     */
     public int getTotalSlots() {
         return this.slotsPerSide * SIDES;
     }
 
-    /** How many rows of nine the GUI shows for one face. */
+    /**
+     * Returns the number of nine-slot rows needed for one face. This describes the tier's storage grid
+     * layout.
+     */
     public int getRows() {
         return this.slotsPerSide / 9;
     }
 
-    /** Registry path of the block that uses this tier, e.g. {@code sided_storage_basic}. */
+    /**
+     * Builds the tier-specific block registry path, such as sided_storage_basic. The mod also uses this
+     * path for translated block titles.
+     */
     public String getBlockPath() {
         return "sided_storage_" + this.name;
     }

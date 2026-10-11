@@ -38,40 +38,73 @@ public class SidedStorageBlock extends BaseEntityBlock {
 
     private final StorageTier tier;
 
+    /**
+     * Creates a placeable Sided Storage block with its tier and Minecraft block properties. The tier
+     * determines the capacity of the block entity created when placed.
+     */
     public SidedStorageBlock(StorageTier tier, Properties properties) {
         super(properties);
         this.tier = tier;
     }
 
+    /**
+     * Supplies Minecraft with the codec that reconstructs this block's tier and properties. This keeps the
+     * three storage variants distinguishable during block serialization.
+     */
     @Override
     protected MapCodec<? extends BaseEntityBlock> codec() {
         return CODEC;
     }
 
+    /**
+     * Returns this block's storage tier so its block entity can allocate the correct number of slots per
+     * face.
+     */
     public StorageTier getTier() {
         return this.tier;
     }
 
+    /**
+     * Creates the persistent inventory owner when a Sided Storage block is placed or loaded. All three
+     * tiers use the same block entity class.
+     */
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new SidedStorageBlockEntity(pos, state);
     }
 
+    /**
+     * Leaves the block-state property list empty because storage tier belongs to the registered block
+     * variant. Face inventories do not require facing or rotation properties.
+     */
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         // This block has no block state properties.
     }
 
+    /**
+     * Uses the normal baked block model to render Sided Storage. Its inventory GUI is handled separately
+     * by SidedStorageScreen.
+     */
     @Override
     protected RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
     }
 
+    /**
+     * Advertises comparator support to Minecraft. Comparators can therefore query how full the storage
+     * block is.
+     */
     @Override
     protected boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
+    /**
+     * Computes a comparator signal from the combined fullness of all six partitions. Empty storage
+     * produces 0, occupied storage at least 1, and completely full storage 15; different stack sizes are
+     * weighted by their actual limits.
+     */
     @Override
     protected int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
         if (!(level.getBlockEntity(pos) instanceof SidedStorageBlockEntity storage)) return 0;
@@ -88,7 +121,12 @@ public class SidedStorageBlock extends BaseEntityBlock {
         return (int) Math.floor(fullness / handler.getSlots() * 14) + (occupied ? 1 : 0);
     }
 
-    /** Upgrade at the crafting recipe's cost without spilling or merging face inventories. */
+    /**
+     * Handles upgrading a placed Basic block with eight gold ingots or a Dense block with eight diamonds.
+     * Copies items to the same slots on the same faces, empties the old inventory before replacement to
+     * prevent spills, and restores it if replacement fails. Refreshes capabilities and comparator output,
+     * and charges materials only after success; creative players upgrade for free.
+     */
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
             Player player, InteractionHand hand, BlockHitResult hit) {
@@ -130,9 +168,10 @@ public class SidedStorageBlock extends BaseEntityBlock {
     }
 
     /**
-     * Spills the stored items when the block is broken or replaced. Mirrors the vanilla container pattern
-     * ({@code ChestBlock}/{@code BarrelBlock}): the loot table drops the block itself, this drops its contents.
-     * Only runs server-side — {@code LevelChunk} never calls {@code onRemove} on the client.
+     * Spills all face inventories when the block is removed or replaced with a different block, then lets
+     * Minecraft remove the block entity. The loot table drops the storage block itself, while this method
+     * drops its contents and updates comparators. Upgrades clear the old inventory first so preserved
+     * items are not also dropped.
      */
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
@@ -152,6 +191,10 @@ public class SidedStorageBlock extends BaseEntityBlock {
         super.onRemove(state, level, pos, newState, isMoving);
     }
 
+    /**
+     * Opens the storage menu on the physical face the player clicked and plays the opening sound. The
+     * server sends the face, block position, and slots per face so the client constructs a matching menu.
+     */
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (level.isClientSide) {
