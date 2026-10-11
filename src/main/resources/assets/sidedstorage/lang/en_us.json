@@ -1,0 +1,19 @@
+{
+  "itemGroup.sidedstorage": "Sided Storage",
+  "block.sidedstorage.sided_storage_basic": "Sided Storage",
+  "block.sidedstorage.sided_storage_dense": "Dense Sided Storage",
+  "block.sidedstorage.sided_storage_capacity": "Capacity Sided Storage",
+  "gui.sidedstorage.side": "Face: %s",
+  "gui.sidedstorage.tab.down": "D",
+  "gui.sidedstorage.tab.up": "U",
+  "gui.sidedstorage.tab.north": "N",
+  "gui.sidedstorage.tab.south": "S",
+  "gui.sidedstorage.tab.west": "W",
+  "gui.sidedstorage.tab.east": "E",
+  "gui.sidedstorage.face.down": "Down",
+  "gui.sidedstorage.face.up": "Up",
+  "gui.sidedstorage.face.north": "North",
+  "gui.sidedstorage.face.south": "South",
+  "gui.sidedstorage.face.west": "West",
+  "gui.sidedstorage.face.east": "East"
+}

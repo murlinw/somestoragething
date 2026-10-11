@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "sidedstorage:block/sided_storage_basic"
+    }
+  }
+}

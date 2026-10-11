@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "III",
+    "ICI",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:diamond"
+    },
+    "C": {
+      "item": "sidedstorage:sided_storage_dense"
+    }
+  },
+  "result": {
+    "id": "sidedstorage:sided_storage_capacity",
+    "count": 1
+  }
+}

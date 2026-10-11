@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "III",
+    "ICI",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:gold_ingot"
+    },
+    "C": {
+      "item": "sidedstorage:sided_storage_basic"
+    }
+  },
+  "result": {
+    "id": "sidedstorage:sided_storage_dense",
+    "count": 1
+  }
+}
