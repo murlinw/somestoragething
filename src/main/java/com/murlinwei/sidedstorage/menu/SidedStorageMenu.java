@@ -1,7 +1,6 @@
 package com.murlinwei.sidedstorage.menu;
 
 import com.murlinwei.sidedstorage.StorageTier;
-import com.murlinwei.sidedstorage.block.SidedStorageBlock;
 import com.murlinwei.sidedstorage.block.SidedStorageBlockEntity;
 import com.murlinwei.sidedstorage.registry.ModMenus;
 import net.minecraft.core.BlockPos;
@@ -39,6 +38,7 @@ public class SidedStorageMenu extends AbstractContainerMenu {
     private final int activeSide;
     private final int slotsPerSide;
     private final BlockPos blockPos;
+    private SidedStorageBlockEntity serverStorage;
 
     /** Server side. */
     public SidedStorageMenu(int containerId, Inventory playerInventory, SidedStorageBlockEntity storage, int activeSide) {
@@ -46,6 +46,7 @@ public class SidedStorageMenu extends AbstractContainerMenu {
         this.activeSide = Mth.clamp(activeSide, 0, StorageTier.SIDES - 1);
         this.slotsPerSide = storage.getTier().getSlotsPerSide();
         this.blockPos = storage.getBlockPos();
+        this.serverStorage = storage;
         this.faceHandler = modifiable(storage.getHandlerForSide(Direction.values()[this.activeSide]),
                 this.slotsPerSide);
         this.addSlots(playerInventory);
@@ -53,7 +54,7 @@ public class SidedStorageMenu extends AbstractContainerMenu {
 
     /** Client side; the server wrote the face and position when the menu was opened. */
     public SidedStorageMenu(int containerId, Inventory playerInventory, RegistryFriendlyByteBuf buffer) {
-        this(containerId, playerInventory, readAccess(playerInventory, buffer));
+        this(containerId, playerInventory, readAccess(buffer));
     }
 
     private SidedStorageMenu(int containerId, Inventory playerInventory, Access access) {
@@ -86,19 +87,12 @@ public class SidedStorageMenu extends AbstractContainerMenu {
     /** Everything the client needs to rebuild a menu that matches the server's. */
     private record Access(IItemHandlerModifiable handler, int activeSide, int slotsPerSide, BlockPos pos) {}
 
-    private static Access readAccess(Inventory playerInventory, RegistryFriendlyByteBuf buffer) {
+    private static Access readAccess(RegistryFriendlyByteBuf buffer) {
         int side = Mth.clamp(buffer.readVarInt(), 0, StorageTier.SIDES - 1);
         BlockPos pos = buffer.readBlockPos();
-
-        if (playerInventory.player.level().getBlockEntity(pos) instanceof SidedStorageBlockEntity storage) {
-            int perSide = storage.getTier().getSlotsPerSide();
-            return new Access(modifiable(storage.getHandlerForSide(Direction.values()[side]), perSide),
-                    side, perSide, pos);
-        }
-
-        // Block not loaded client-side: build an empty face of the right size and let the server resync.
-        StorageTier tier = StorageTier.BASIC;
-        return new Access(new ItemStackHandler(tier.getSlotsPerSide()), side, tier.getSlotsPerSide(), pos);
+        int perSide = buffer.readVarInt();
+        if (perSide != 9 && perSide != 18 && perSide != 27) throw new IllegalArgumentException("Invalid face size");
+        return new Access(new ItemStackHandler(perSide), side, perSide, pos);
     }
 
     private static IItemHandlerModifiable modifiable(IItemHandler handler, int slotsPerSide) {
@@ -133,8 +127,8 @@ public class SidedStorageMenu extends AbstractContainerMenu {
     /** Mirrors the vanilla check: the block must still be ours, and the player must still be in reach. */
     @Override
     public boolean stillValid(Player player) {
-        return player.level().getBlockState(this.blockPos).getBlock() instanceof SidedStorageBlock
-                && player.canInteractWithBlock(this.blockPos, 4.0);
+        return player.level().isClientSide || (player.level().getBlockEntity(this.blockPos) == this.serverStorage
+                && player.canInteractWithBlock(this.blockPos, 4.0));
     }
 
     @Override

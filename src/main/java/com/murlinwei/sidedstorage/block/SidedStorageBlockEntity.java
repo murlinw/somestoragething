@@ -47,6 +47,9 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
             @Override
             protected void onContentsChanged(int slot) {
                 setChanged();
+                if (level != null && !level.isClientSide) {
+                    level.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
+                }
             }
         };
         this.sideHandlers = new IItemHandler[StorageTier.SIDES];
@@ -66,11 +69,10 @@ public class SidedStorageBlockEntity extends BlockEntity implements MenuProvider
     }
 
     /**
-     * The handler for one face. A {@code null} direction (a query that names no side) yields the whole inventory,
-     * so side-agnostic automation keeps working.
+     * Automation must name a face; an unsided query must not bypass the partitions.
      */
-    public IItemHandler getHandlerForSide(@Nullable Direction side) {
-        return side == null ? this.itemHandler : this.sideHandlers[side.ordinal()];
+    public @Nullable IItemHandler getHandlerForSide(@Nullable Direction side) {
+        return side == null ? null : this.sideHandlers[side.ordinal()];
     }
 
     public Component getTitle() {

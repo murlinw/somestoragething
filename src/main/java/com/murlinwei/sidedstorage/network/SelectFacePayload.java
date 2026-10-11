@@ -1,6 +1,8 @@
 package com.murlinwei.sidedstorage.network;
 
 import com.murlinwei.sidedstorage.SidedStorage;
+import com.murlinwei.sidedstorage.StorageTier;
+import com.murlinwei.sidedstorage.menu.SidedStorageMenu;
 import com.murlinwei.sidedstorage.block.SidedStorageBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -45,6 +47,12 @@ public record SelectFacePayload(BlockPos pos, int face) implements CustomPacketP
                 return;
             }
             BlockPos pos = payload.pos();
+            if (payload.face() < 0 || payload.face() >= StorageTier.SIDES
+                    || !(player.containerMenu instanceof SidedStorageMenu menu)
+                    || !menu.getBlockPos().equals(pos) || !menu.stillValid(player)
+                    || !player.level().hasChunkAt(pos)) {
+                return;
+            }
             // Sanity check: the player must be near the block they claim to be looking at.
             if (player.distanceToSqr(Vec3.atCenterOf(pos)) > 64.0) {
                 return;
@@ -60,6 +68,7 @@ public record SelectFacePayload(BlockPos pos, int face) implements CustomPacketP
             player.openMenu(storage, buffer -> {
                 buffer.writeVarInt(storage.getActiveSide());
                 buffer.writeBlockPos(pos);
+                buffer.writeVarInt(storage.getTier().getSlotsPerSide());
             });
         });
     }

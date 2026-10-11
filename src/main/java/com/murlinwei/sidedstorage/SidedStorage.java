@@ -45,6 +45,6 @@ public class SidedStorage {
     }
 
     private void registerPayloads(RegisterPayloadHandlersEvent event) {
-        SelectFacePayload.register(event.registrar("1"));
+        SelectFacePayload.register(event.registrar("2"));
     }
 }

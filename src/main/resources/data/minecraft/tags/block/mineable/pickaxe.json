@@ -1,0 +1,4 @@
+{
+  "replace": false,
+  "values": ["sidedstorage:sided_storage_basic", "sidedstorage:sided_storage_dense", "sidedstorage:sided_storage_capacity"]
+}

@@ -4,6 +4,8 @@ import com.murlinwei.sidedstorage.StorageTier;
 import com.murlinwei.sidedstorage.menu.SidedStorageMenu;
 import com.murlinwei.sidedstorage.network.SelectFacePayload;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -37,6 +39,18 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
         this.imageHeight = this.menu.getImageHeight();
         // AbstractContainerScreen centres the panel using the dimensions set above.
         super.init();
+        for (int side = 0; side < StorageTier.SIDES; side++) {
+            final int selected = side;
+            Component face = Component.translatable("gui.sidedstorage.face." + FACES[side].getSerializedName());
+            Button tab = Button.builder(Component.translatable("gui.sidedstorage.tab." + FACES[side].getSerializedName()),
+                    button -> selectFace(selected))
+                    .bounds(this.leftPos + TAB_START_X + side * TAB_WIDTH, this.topPos + TAB_Y, TAB_WIDTH, TAB_HEIGHT)
+                    .tooltip(Tooltip.create(face))
+                    .createNarration(message -> face.copy())
+                    .build();
+            this.addRenderableWidget(tab);
+            if (side == this.menu.getActiveSide()) this.setInitialFocus(tab);
+        }
     }
 
     @Override
@@ -51,25 +65,6 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
         graphics.fill(x, y, x + 1, bottom, 0xFFFFFFFF);
         graphics.fill(x, bottom - 1, right, bottom, 0xFF555555);
         graphics.fill(right - 1, y, right, bottom, 0xFF555555);
-
-        int active = this.menu.getActiveSide();
-        for (int side = 0; side < StorageTier.SIDES; side++) {
-            int tabX = x + TAB_START_X + side * TAB_WIDTH;
-            int tabY = y + TAB_Y;
-            int tabRight = tabX + TAB_WIDTH;
-            int tabBottom = tabY + TAB_HEIGHT;
-
-            graphics.fill(tabX, tabY, tabRight, tabBottom, side == active ? 0xFF8B8B8B : 0xFFB6B6B6);
-            graphics.fill(tabX, tabBottom - 1, tabRight, tabBottom, 0xFF3A3A3A);
-            graphics.fill(tabRight - 1, tabY, tabRight, tabBottom, 0xFF3A3A3A);
-
-            // Tabs are only 26px wide, so they get a single letter; the selected face is spelled out above.
-            Component label = Component.translatable("gui.sidedstorage.tab." + FACES[side].getSerializedName());
-            graphics.drawString(this.font, label,
-                    tabX + (TAB_WIDTH - this.font.width(label)) / 2,
-                    tabY + (TAB_HEIGHT - 8) / 2,
-                    0xFF1A1A1A, false);
-        }
 
         // Slot frames follow the positions the menu already gave the slots.
         for (Slot slot : this.menu.slots) {
@@ -96,24 +91,6 @@ public class SidedStorageScreen extends AbstractContainerScreen<SidedStorageMenu
 
         graphics.drawString(this.font, Component.translatable("container.inventory"),
                 8, this.menu.getPlayerInvY() - 10, 0x404040, false);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0) {
-            int relX = (int) (mouseX - this.leftPos);
-            int relY = (int) (mouseY - this.topPos);
-            if (relY >= TAB_Y && relY < TAB_Y + TAB_HEIGHT) {
-                for (int side = 0; side < StorageTier.SIDES; side++) {
-                    int tabX = TAB_START_X + side * TAB_WIDTH;
-                    if (relX >= tabX && relX < tabX + TAB_WIDTH) {
-                        this.selectFace(side);
-                        return true;
-                    }
-                }
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     /**
